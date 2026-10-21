@@ -21,7 +21,7 @@ Monta a DPS, valida nos XSDs oficiais, assina com o certificado A1 e conversa co
 Requer Ruby 3.4 ou superior. No Gemfile:
 
 ```ruby
-gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.1.0"
+gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.1.1"
 ```
 
 Depois, `bundle install` e:
@@ -133,6 +133,10 @@ bundle exec standardrb # estilo; não obrigatório na CI
 ```
 
 Envie mudanças por pull request com versão nova: atualize o `CHANGELOG.md` e `NfseNacional::VERSION`. Inclua testes que reproduzam a mudança. Nunca coloque certificado real nem dados reais de pessoas no repositório.
+
+## Origem e agradecimentos
+
+A base desta gem veio do script de emissão de NFS-e escrito por **Weverson Ferreira do Santos** ([@negowfs](https://github.com/negowfs)): a montagem e a numeração da DPS, o formato do Id, a margem de segurança do `dhEmi`, a assinatura XMLDSig no perfil que a Sefin aceita em produção, o envio compactado em gzip/base64, a chave de idempotência e o primeiro conjunto de XSDs. Obrigado, Nego!
 
 ## Licenças
 
