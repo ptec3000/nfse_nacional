@@ -69,13 +69,21 @@ Com o mesmo `client`:
 ```ruby
 consulta = client.consultar_dps(dps.id)
 
-if consulta.status == :issued
+case consulta.status
+when :issued
   chave = consulta.access_key
   nota = client.consultar_nfse(chave)
-  if nota.status == :issued
+  case nota.status
+  when :issued
     File.write("nota.xml", nota.nfse_xml)
     # Com a gem danfse instalada e require "danfse":
     # File.binwrite("nota.pdf", Danfse.render(nota.nfse_xml))
+  when :not_found
+    warn "NFS-e não encontrada. Confira a chave."
+  when :rejected
+    warn "A Sefin recusou a consulta. Isso não prova que a nota não existe; investigue e tente de novo depois."
+  when :error
+    warn "Falha de rede ou da Sefin. Tente de novo."
   end
 
   cancelamento = client.cancelar(
@@ -83,6 +91,12 @@ if consulta.status == :issued
     motivo: "Erro na emissão da nota de teste"
   )
   warn cancelamento.errors.join("; ") unless cancelamento.status == :issued
+when :not_found
+  warn "A DPS/NFS-e não existe. Confira o identificador."
+when :rejected
+  warn "A Sefin recusou a consulta. Isso não prova que a nota não existe; investigue e tente de novo depois."
+when :error
+  warn "Falha de rede ou da Sefin. Tente de novo."
 end
 ```
 
