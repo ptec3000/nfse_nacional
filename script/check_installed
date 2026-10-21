@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+# Uso: cd /tmp && ruby /caminho/script/check_installed /caminho/test/support/test_certificate.rb
+# Carrega a gem INSTALADA (não a do checkout) e valida DPS :atual, :rtc e cancelamento nos XSDs empacotados.
+abort "rode fora do checkout" if File.exist?("nfse_nacional.gemspec")
+abort "rode sem Bundler" if defined?(Bundler)
+require "date"
+require "nfse_nacional"
+abort "carregou a gem do checkout: #{$LOADED_FEATURES.grep(/nfse_nacional\.rb/).first}" unless Gem.loaded_specs["nfse_nacional"]
+require ARGV.fetch(0)
+
+base = {
+  ambiente: :homologacao,
+  prestador: {cnpj: "12345678000195", municipio_ibge: "3106200", op_simp_nac: "3", reg_ap_trib_sn: "1", reg_esp_trib: "0"},
+  tomador: {documento: "12345678909", nome: "Cliente Exemplo", email: "cliente@example.com"},
+  servico: {c_trib_nac: "010501", municipio_prestacao_ibge: "3106200", descricao: "Serviço de exemplo", nbs: "111032200"},
+  valores: {valor: "100.00", trib_issqn: "1", tp_ret_issqn: "1", pis_cofins: nil},
+  competencia: Date.new(2026, 10, 20), serie: "900", numero: "1", now: Time.now - 60
+}
+NfseNacional::Schema.validate_dps!(NfseNacional::Dps.new(**base).to_xml(leiaute: :atual), leiaute: :atual)
+NfseNacional::Schema.validate_dps!(NfseNacional::Dps.new(**base, ibs_cbs: {c_ind_op: "030101", cst: "000", c_class_trib: "000001"}).to_xml(leiaute: :rtc), leiaute: :rtc)
+NfseNacional::Schema.validate_cancelamento!(NfseNacional::Cancelamento.new(access_key: "1" * 50, ambiente: :homologacao,
+  cnpj_autor: "12345678000195", motivo: "Erro na emissão da nota de teste").to_xml)
+puts "ok #{NfseNacional::VERSION} #{Gem.loaded_specs["nfse_nacional"].full_gem_path}"

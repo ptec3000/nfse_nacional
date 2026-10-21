@@ -24,6 +24,11 @@ module NfseNacional
     def self.setup(&block) = define_method(:setup) { instance_exec(&block) }
     def self.teardown(&block) = define_method(:teardown) { instance_exec(&block) }
 
+    def after_teardown
+      Thread.current[:nfse_nacional_now] = nil
+      super
+    end
+
     alias_method :assert_not, :refute
     alias_method :assert_not_empty, :refute_empty
     alias_method :assert_not_equal, :refute_equal

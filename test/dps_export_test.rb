@@ -29,11 +29,11 @@ class NfseNacionalDpsExportTest < NfseNacional::TestCase
   test "exportação no leiaute rtc valida no XSD derivado" do
     xml = NfseNacional::Dps.new(**export_attributes, ibs_cbs: {c_ind_op: "030101", cst: "000", c_class_trib: "000001"})
       .to_xml(leiaute: :rtc)
-    assert_nothing_raised {NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)}
+    assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc) }
   end
 
   test "DPS de exportação valida no XSD" do
-    assert_nothing_raised {NfseNacional::Schema.validate_dps!(NfseNacional::Dps.new(**export_attributes).to_xml)}
+    assert_nothing_raised { NfseNacional::Schema.validate_dps!(NfseNacional::Dps.new(**export_attributes).to_xml) }
   end
 
   test "tomador estrangeiro sem NIF vai com cNaoNIF e endereço no exterior" do
@@ -61,11 +61,11 @@ class NfseNacionalDpsExportTest < NfseNacional::TestCase
     assert_equal "US", doc.at("serv/locPrest/cPaisPrestacao").text
     assert_nil doc.at("serv/locPrest/cLocPrestacao")
     ext = doc.at("serv/comExt")
-    assert_equal %w[1 0 220 3700.00 01 01 1 0], %w[mdPrestacao vincPrest tpMoeda vServMoeda mecAFComexP mecAFComexT movTempBens mdic].map {|n| ext.at(n).text}
+    assert_equal %w[1 0 220 3700.00 01 01 1 0], %w[mdPrestacao vincPrest tpMoeda vServMoeda mecAFComexP mecAFComexT movTempBens mdic].map { |n| ext.at(n).text }
     assert_equal "3", doc.at("valores/trib/tribMun/tribISSQN").text
     assert_nil doc.at("valores/trib/tribMun/cPaisResult")
     assert_nil doc.at("valores/trib/tribFed")
-    assert_equal %w[13.45 0.00 2.00], %w[pTotTribFed pTotTribEst pTotTribMun].map {|n| doc.at("valores/trib/totTrib/pTotTrib/#{n}").text}
+    assert_equal %w[13.45 0.00 2.00], %w[pTotTribFed pTotTribEst pTotTribMun].map { |n| doc.at("valores/trib/totTrib/pTotTrib/#{n}").text }
     assert_nil doc.at("valores/trib/totTrib/pTotTribSN")
   end
 
@@ -76,6 +76,6 @@ class NfseNacionalDpsExportTest < NfseNacional::TestCase
       valores: {valor: BigDecimal("10.00"), trib_issqn: "1", tp_ret_issqn: "1"}
     )
 
-    assert_raises(KeyError) {NfseNacional::Dps.new(**attributes).to_xml}
+    assert_raises(KeyError) { NfseNacional::Dps.new(**attributes).to_xml }
   end
 end

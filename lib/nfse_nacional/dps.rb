@@ -40,7 +40,7 @@ module NfseNacional
       "DPS#{municipality}#{inscription_type}#{document.rjust(14, "0")}#{series}#{number}"
     end
 
-    def ibs_cbs_configured? = IBS_CBS_KEYS.all? {|key| !@ibs_cbs.to_h[key].to_s.strip.empty?}
+    def ibs_cbs_configured? = IBS_CBS_KEYS.all? { |key| !@ibs_cbs.to_h[key].to_s.strip.empty? }
 
     # :rtc é o leiaute que a homologação exige desde 19/10/2026 (finNFSe e grupo IBSCBS, NT 009);
     # :atual é o de produção até ela virar.

@@ -7,7 +7,8 @@ module NfseNacional
 
       def initialize(errors)
         @errors = errors
-        super(errors.map(&:to_s).join("\n"))
+        messages = errors.map(&:to_s)
+        super(messages.join("\n"))
       end
     end
 
@@ -22,7 +23,7 @@ module NfseNacional
     end
 
     def self.validate!(xml, schema)
-      document = Nokogiri::XML(xml) {|config| config.strict.nonet}
+      document = Nokogiri::XML(xml) { |config| config.strict.nonet }
       errors = schema.validate(document)
       raise Invalid.new(errors) unless errors.empty?
     rescue Nokogiri::XML::SyntaxError => error
@@ -30,9 +31,9 @@ module NfseNacional
     end
 
     def self.dps_schema(leiaute)
-      path = DPS_SCHEMAS.fetch(leiaute) {raise ArgumentError, "Leiaute desconhecido: #{leiaute.inspect}"}
+      path = DPS_SCHEMAS.fetch(leiaute) { raise ArgumentError, "Leiaute desconhecido: #{leiaute.inspect}" }
       @dps_schemas ||= {}
-      @dps_schemas[leiaute] ||= File.open(File.expand_path(path, __dir__)) {|file| Nokogiri::XML::Schema(file)}
+      @dps_schemas[leiaute] ||= File.open(File.expand_path(path, __dir__)) { |file| Nokogiri::XML::Schema(file) }
     end
 
     def self.cancelamento_schema

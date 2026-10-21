@@ -15,7 +15,7 @@ module NfseNacional
     end
 
     def cnpj
-      common_name = certificate.subject.to_a.find {|name, _value, _type| name == "CN"}&.at(1)
+      common_name = certificate.subject.to_a.find { |name, _value, _type| name == "CN" }&.at(1)
       common_name&.match(/:(\d{14})\z/)&.[](1)
     end
 
@@ -54,7 +54,7 @@ module NfseNacional
           /usr/lib/aarch64-linux-gnu/ossl-modules
           /usr/lib/ossl-modules
           /usr/local/lib/ossl-modules
-        ].find {|path| File.file?(File.join(path, "legacy.so"))}
+        ].find { |path| File.file?(File.join(path, "legacy.so")) }
         ENV["OPENSSL_MODULES"] = directory if directory
       end
       OpenSSL::Provider.load("legacy")

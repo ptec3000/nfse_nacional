@@ -40,7 +40,7 @@ module NfseNacional
           end
           builder.SignatureValue
           builder.KeyInfo do
-            builder.X509Data {builder.X509Certificate(Base64.strict_encode64(@certificado.certificate.to_der))}
+            builder.X509Data { builder.X509Certificate(Base64.strict_encode64(@certificado.certificate.to_der)) }
           end
         end
       end.doc.root
@@ -84,13 +84,13 @@ module NfseNacional
 
     def self.document_and_target(xml, node)
       raise Invalid, "Nó de assinatura não suportado" unless %w[infDPS infPedReg].include?(node)
-      doc = Nokogiri::XML(xml) {|config| config.strict.nonet}
+      doc = Nokogiri::XML(xml) { |config| config.strict.nonet }
       targets = doc.xpath("//*[local-name()='#{node}']")
       raise Invalid, "#{node} ausente ou duplicado" unless targets.size == 1
       target = targets.first
       id = target["Id"]
       raise Invalid, "#{node} sem atributo Id" if id.nil? || id.strip.empty?
-      ids = doc.xpath("//*[@Id]").count {|element| element["Id"] == id}
+      ids = doc.xpath("//*[@Id]").count { |element| element["Id"] == id }
       raise Invalid, "Id de assinatura duplicado" unless ids == 1
       raise Invalid, "Nó de assinatura fora da raiz" unless target.parent == doc.root
       [doc, target]

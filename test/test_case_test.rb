@@ -16,4 +16,22 @@ class NfseNacionalTestCaseTest < NfseNacional::TestCase
     assert_not_empty [1]
     assert_not_includes [1], 2
   end
+
+  [false, true].each do |custom_teardown|
+    test "travel fora de travel_to não vaza com teardown próprio #{custom_teardown}" do
+      clock_test = Class.new(NfseNacional::TestCase) do
+        define_method(:advance_clock) { travel 3600 }
+        teardown { @teardown_called = true } if custom_teardown
+        attr_reader :teardown_called
+      end.new("advance_clock")
+
+      result = clock_test.run
+
+      assert result.passed?, result.failures.inspect
+      assert clock_test.teardown_called if custom_teardown
+      assert_nil Thread.current[:nfse_nacional_now]
+    ensure
+      Thread.current[:nfse_nacional_now] = nil
+    end
+  end
 end

@@ -71,7 +71,7 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
 
   test "documento exige nome do tomador" do
     [nil, "", "   "].each do |name|
-      error = assert_raises(ArgumentError) {dps(tomador: {documento: "12345678909", nome: name}).to_xml}
+      error = assert_raises(ArgumentError) { dps(tomador: {documento: "12345678909", nome: name}).to_xml }
       assert_equal "Tomador incompleto: informe o nome quando houver CPF/CNPJ", error.message
     end
   end
@@ -136,12 +136,12 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
   test "golden de referência é aceito pelo schema publicado para o leiaute 1.00" do
     xml = File.read(fixture_path("dps_golden.xml"), encoding: "UTF-8")
 
-    assert_nothing_raised {NfseNacional::Schema.validate_dps!(xml)}
+    assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml) }
   end
 
   test "schema expõe erros de validação e rejeita XML malformado" do
     [dps.to_xml.sub("<nDPS>123456789012</nDPS>", "<nDPS>0</nDPS>"), "<DPS>"].each do |xml|
-      error = assert_raises(NfseNacional::Schema::Invalid) {NfseNacional::Schema.validate_dps!(xml)}
+      error = assert_raises(NfseNacional::Schema::Invalid) { NfseNacional::Schema.validate_dps!(xml) }
       assert_not_empty error.errors
       assert_includes error.message, error.errors.first.to_s
     end
@@ -156,7 +156,7 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
       doc.at("infDPS").element_children.map(&:name)
     assert_equal %w[cTribNac cTribMun cNBS xDescServ], doc.at("cServ").element_children.map(&:name)
     assert_equal "0", doc.at("infDPS > finNFSe").text
-    assert_equal ["030101", "0", "000", "000001"], %w[cIndOp indDest CST cClassTrib].map {doc.at("IBSCBS #{it}").text}
+    assert_equal ["030101", "0", "000", "000001"], %w[cIndOp indDest CST cClassTrib].map { doc.at("IBSCBS #{it}").text }
   end
 
   test "rtc é igual ao atual fora de versão, finNFSe, IBSCBS e posição do cNBS" do
@@ -170,10 +170,10 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
 
   test "rtc sem IBS CBS completo levanta erro claro" do
     [nil, {}, IBS_CBS.merge(cst: ""), IBS_CBS.except(:c_class_trib)].each do |ibs_cbs|
-      error = assert_raises(NfseNacional::IbsCbsNaoConfigurado) {dps(ibs_cbs: ibs_cbs).to_xml(leiaute: :rtc)}
+      error = assert_raises(NfseNacional::IbsCbsNaoConfigurado) { dps(ibs_cbs: ibs_cbs).to_xml(leiaute: :rtc) }
       assert_equal "IBS/CBS não configurado", error.message
     end
-    assert_nothing_raised {dps(ibs_cbs: nil).to_xml}
+    assert_nothing_raised { dps(ibs_cbs: nil).to_xml }
   end
 
   test "id não depende do leiaute nem do IBS CBS" do
@@ -181,7 +181,7 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
   end
 
   test "leiaute desconhecido é erro de programação" do
-    assert_raises(ArgumentError) {dps(ibs_cbs: IBS_CBS).to_xml(leiaute: :novo)}
+    assert_raises(ArgumentError) { dps(ibs_cbs: IBS_CBS).to_xml(leiaute: :novo) }
   end
 
   test "paridade literal com o XML de referência (cópia alternativa)" do
@@ -233,7 +233,7 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
     assert_equal %w[tpAmb dhEmi verAplic serie nDPS dCompet tpEmit finNFSe cLocEmi prest toma serv valores IBSCBS], names
     assert_equal "0", doc.at("infDPS > finNFSe").text
     assert_equal %w[cIndOp indDest valores], doc.at("IBSCBS").element_children.map(&:name)
-    assert_equal ["030101", "0", "000", "000001"], %w[cIndOp indDest CST cClassTrib].map {doc.at("IBSCBS #{it}").text}
+    assert_equal ["030101", "0", "000", "000001"], %w[cIndOp indDest CST cClassTrib].map { doc.at("IBSCBS #{it}").text }
     assert_equal %w[CST cClassTrib], doc.at("IBSCBS > valores > trib").element_children.map(&:name)
     assert_equal %w[cTribNac cTribMun cNBS xDescServ], doc.at("cServ").element_children.map(&:name)
   end
@@ -256,20 +256,20 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
   test "rtc passa no XSD derivado sem tomador, com CNPJ e sem tribFed" do
     [nil, {documento: "12345678000195", nome: "Loja X"}].each do |tomador|
       xml = dps(tomador: tomador, ibs_cbs: IBS_CBS).to_xml(leiaute: :rtc)
-      assert_nothing_raised {NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)}
+      assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc) }
     end
     xml = NfseNacional::Dps.new(**RENTAL_GOLDEN_ATTRIBUTES, ibs_cbs: IBS_CBS).to_xml(leiaute: :rtc)
-    assert_nothing_raised {NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)}
+    assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc) }
   end
 
   test "rtc sem IBS CBS completo levanta erro claro (cópia alternativa)" do
     [nil, {}, IBS_CBS.merge(cst: ""), IBS_CBS.except(:c_class_trib)].each do |ibs_cbs|
-      error = assert_raises(NfseNacional::IbsCbsNaoConfigurado) {dps(ibs_cbs: ibs_cbs).to_xml(leiaute: :rtc)}
+      error = assert_raises(NfseNacional::IbsCbsNaoConfigurado) { dps(ibs_cbs: ibs_cbs).to_xml(leiaute: :rtc) }
       assert_equal "IBS/CBS não configurado", error.message
       refute dps(ibs_cbs: ibs_cbs).ibs_cbs_configured?
     end
     assert dps(ibs_cbs: IBS_CBS).ibs_cbs_configured?
-    assert_nothing_raised {dps(ibs_cbs: nil).to_xml}
+    assert_nothing_raised { dps(ibs_cbs: nil).to_xml }
   end
 
   private
