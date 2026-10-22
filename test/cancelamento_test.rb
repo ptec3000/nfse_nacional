@@ -50,6 +50,10 @@ class NfseNacionalCancelamentoTest < NfseNacional::TestCase
     assert_raises(ArgumentError) { NfseNacional::Client.new(certificado: nil, ver_aplic: "x" * 21) }
   end
 
+  test "CNPJ do autor é normalizado como os demais documentos" do
+    assert_equal "12ABC34501DE35", Nokogiri::XML(cancellation(cnpj_autor: "12.abc.345/01de-35").to_xml).at_xpath("//n:CNPJAutor", NS).text
+  end
+
   private
 
   def cancellation(**attributes)

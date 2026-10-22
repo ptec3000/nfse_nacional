@@ -48,7 +48,7 @@ module NfseNacional
       Schema.validate_cancelamento!(xml)
       signed = Signer.new(@certificado).sign(xml, node: "infPedReg")
       # Exclui dhEvento para manter a mesma chave em tentativas posteriores.
-      key = Digest::SHA256.hexdigest(JSON.generate([@ambiente, access_key, cnpj_autor.to_s.gsub(/\D/, ""), codigo_motivo.to_s, motivo, numero_pedido.to_s]))
+      key = Digest::SHA256.hexdigest(JSON.generate([@ambiente, access_key, Documento.normalizar(cnpj_autor).to_s, codigo_motivo.to_s, motivo, numero_pedido.to_s]))
       perform("/nfse/#{URI.encode_uri_component(access_key)}/eventos", request_xml: signed, idempotency_key: key,
         payload: {pedidoRegistroEventoXmlGZipB64: gzip_base64(signed)})
     end

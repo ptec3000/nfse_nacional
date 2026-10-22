@@ -272,6 +272,40 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
     assert_nothing_raised { dps(ibs_cbs: nil).to_xml }
   end
 
+  test "rtc aceita tomador com CNPJ alfanumérico e passa no XSD" do
+    xml = dps(tomador: {documento: "12.abc.345/01de-35", nome: "Loja PJ"}, ibs_cbs: IBS_CBS).to_xml(leiaute: :rtc)
+    NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)
+    assert_equal "12ABC34501DE35", document(xml).at_xpath("//n:toma/n:CNPJ", namespaces).text
+  end
+
+  test "rtc aceita prestador com CNPJ alfanumérico no Id e passa no XSD" do
+    prestador = @attributes[:prestador].merge(cnpj: "12.ABC.345/01DE-35")
+    xml = dps(prestador: prestador, ibs_cbs: IBS_CBS).to_xml(leiaute: :rtc)
+    NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)
+    id = document(xml).at_xpath("//n:infDPS", namespaces)["Id"]
+    assert_equal "DPS3106200212ABC34501DE3500900000123456789012", id
+    assert_match(/\ADPS[0-9]{7}(1[0-9]{14}|2[0-9A-Z]{14})[0-9]{20}\z/, id)
+    assert_equal "12ABC34501DE35", document(xml).at_xpath("//n:prest/n:CNPJ", namespaces).text
+  end
+
+  test "leiaute atual recusa CNPJ alfanumérico do tomador ou do prestador" do
+    [
+      {tomador: {documento: "12ABC34501DE35", nome: "Loja PJ"}},
+      {prestador: @attributes[:prestador].merge(cnpj: "12.abc.345/01de-35")}
+    ].each do |overrides|
+      error = assert_raises(ArgumentError) { dps(**overrides).to_xml }
+      assert_equal "CNPJ alfanumérico só é aceito no leiaute :rtc", error.message
+    end
+  end
+
+  test "CPF e CNPJ numéricos pontuados continuam saindo só com dígitos" do
+    xml = dps(prestador: @attributes[:prestador].merge(cnpj: "12.345.678/0001-95"),
+      tomador: {documento: "123.456.789-09", nome: "Loja X"}).to_xml
+    NfseNacional::Schema.validate_dps!(xml)
+    assert_equal "12345678000195", document(xml).at_xpath("//n:prest/n:CNPJ", namespaces).text
+    assert_equal "12345678909", document(xml).at_xpath("//n:toma/n:CPF", namespaces).text
+  end
+
   private
 
   def rental_dps(op_simp_nac:, tot_trib:)
