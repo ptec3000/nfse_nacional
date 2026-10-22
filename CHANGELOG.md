@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- `Certificado#cnpj` lê o CNPJ alfanumérico do CN do e-CNPJ (`NOME:12ABC34501DE35`); antes só achava CNPJ numérico e a empresa com letras tinha o certificado recusado.
+
 ## 0.2.0
 
 - CNPJ alfanumérico (IN RFB 2.229/2024) no prestador e no tomador do leiaute `:rtc`, inclusive no Id da DPS. No leiaute `:atual` (XSD 1.00, só números), `to_xml` levanta `ArgumentError`.

@@ -16,7 +16,8 @@ module NfseNacional
 
     def cnpj
       common_name = certificate.subject.to_a.find { |name, _value, _type| name == "CN" }&.at(1)
-      common_name&.match(/:(\d{14})\z/)&.[](1)
+      # e-CNPJ ICP-Brasil: "NOME:CNPJ". O CNPJ alfanumérico (IN RFB 2.229/2024) tem 12 posições [0-9A-Z] e 2 dígitos.
+      common_name&.match(/:([0-9A-Z]{12}\d{2})\z/)&.[](1)
     end
 
     def valid_until
