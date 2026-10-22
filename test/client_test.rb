@@ -299,6 +299,19 @@ class NfseNacionalClientTest < NfseNacional::TestCase
     end
   end
 
+  test "chave de idempotência do cancelamento ignora a pontuação do CNPJ do autor" do
+    keys = []
+    stub_request(:post, "#{BASE}/nfse/#{KEY}/eventos").with { |req| keys << req.headers["Idempotency-Key"] }
+      .to_return(status: 400, body: "{}")
+
+    ["12.345.678/0001-95", "12345678000195"].each do |cnpj|
+      @client.cancelar(KEY, cnpj_autor: cnpj, motivo: "Erro na emissão da nota fiscal")
+    end
+
+    expected = Digest::SHA256.hexdigest(JSON.generate(["homologacao", KEY, "12345678000195", "1", "Erro na emissão da nota fiscal", "1"]))
+    assert_equal [expected, expected], keys
+  end
+
   private
 
   def pack(xml)

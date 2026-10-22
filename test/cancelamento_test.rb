@@ -50,6 +50,15 @@ class NfseNacionalCancelamentoTest < NfseNacional::TestCase
     assert_raises(ArgumentError) { NfseNacional::Client.new(certificado: nil, ver_aplic: "x" * 21) }
   end
 
+  test "CNPJ do autor é normalizado como os demais documentos" do
+    assert_equal "12345678000195", Nokogiri::XML(cancellation(cnpj_autor: "12.345.678/0001-95").to_xml).at_xpath("//n:CNPJAutor", NS).text
+  end
+
+  test "CNPJ alfanumérico do autor é recusado: o XSD de eventos 1.00 só aceita números" do
+    error = assert_raises(ArgumentError) { cancellation(cnpj_autor: "12.abc.345/01de-35") }
+    assert_equal "Cancelamento com CNPJ alfanumérico ainda não é aceito: o XSD de eventos 1.00 só admite números", error.message
+  end
+
   private
 
   def cancellation(**attributes)

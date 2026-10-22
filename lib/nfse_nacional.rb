@@ -14,6 +14,7 @@ module NfseNacional
   end
 end
 
+require_relative "nfse_nacional/documento"
 require_relative "nfse_nacional/numero"
 require_relative "nfse_nacional/dps"
 require_relative "nfse_nacional/schema"

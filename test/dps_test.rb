@@ -69,6 +69,21 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
     end
   end
 
+  test "documento do tomador que não é CPF nem CNPJ é recusado em qualquer leiaute" do
+    ["123", "12ABC34501DE3X", "529.982.247-2"].each do |documento|
+      error = assert_raises(ArgumentError) { dps(tomador: {documento: documento, nome: "Fulano"}) }
+      assert_equal "Documento do tomador inválido: informe um CPF (11 dígitos) ou um CNPJ (14 posições)", error.message
+    end
+  end
+
+  test "CNPJ alfanumérico do tomador precisa ter dígito verificador válido" do
+    ["CPF: 529.982.247-25", "12.ABC.345/01DE-36"].each do |documento|
+      error = assert_raises(ArgumentError) { dps(tomador: {documento: documento, nome: "Fulano"}) }
+      assert_equal "CNPJ alfanumérico do tomador com dígito verificador inválido", error.message
+    end
+    assert_nothing_raised { dps(tomador: {documento: "12.ABC.345/01DE-35", nome: "Fulano"}) }
+  end
+
   test "documento exige nome do tomador" do
     [nil, "", "   "].each do |name|
       error = assert_raises(ArgumentError) { dps(tomador: {documento: "12345678909", nome: name}).to_xml }
@@ -270,6 +285,40 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
     end
     assert dps(ibs_cbs: IBS_CBS).ibs_cbs_configured?
     assert_nothing_raised { dps(ibs_cbs: nil).to_xml }
+  end
+
+  test "rtc aceita tomador com CNPJ alfanumérico e passa no XSD" do
+    xml = dps(tomador: {documento: "12.abc.345/01de-35", nome: "Loja PJ"}, ibs_cbs: IBS_CBS).to_xml(leiaute: :rtc)
+    NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)
+    assert_equal "12ABC34501DE35", document(xml).at_xpath("//n:toma/n:CNPJ", namespaces).text
+  end
+
+  test "rtc aceita prestador com CNPJ alfanumérico no Id e passa no XSD" do
+    prestador = @attributes[:prestador].merge(cnpj: "12.ABC.345/01DE-35")
+    xml = dps(prestador: prestador, ibs_cbs: IBS_CBS).to_xml(leiaute: :rtc)
+    NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)
+    id = document(xml).at_xpath("//n:infDPS", namespaces)["Id"]
+    assert_equal "DPS3106200212ABC34501DE3500900000123456789012", id
+    assert_match(/\ADPS[0-9]{7}(1[0-9]{14}|2[0-9A-Z]{14})[0-9]{20}\z/, id)
+    assert_equal "12ABC34501DE35", document(xml).at_xpath("//n:prest/n:CNPJ", namespaces).text
+  end
+
+  test "leiaute atual recusa CNPJ alfanumérico do tomador ou do prestador" do
+    [
+      {tomador: {documento: "12ABC34501DE35", nome: "Loja PJ"}},
+      {prestador: @attributes[:prestador].merge(cnpj: "12.abc.345/01de-35")}
+    ].each do |overrides|
+      error = assert_raises(ArgumentError) { dps(**overrides).to_xml }
+      assert_equal "CNPJ alfanumérico só é aceito no leiaute :rtc", error.message
+    end
+  end
+
+  test "CPF e CNPJ numéricos pontuados continuam saindo só com dígitos" do
+    xml = dps(prestador: @attributes[:prestador].merge(cnpj: "12.345.678/0001-95"),
+      tomador: {documento: "123.456.789-09", nome: "Loja X"}).to_xml
+    NfseNacional::Schema.validate_dps!(xml)
+    assert_equal "12345678000195", document(xml).at_xpath("//n:prest/n:CNPJ", namespaces).text
+    assert_equal "12345678909", document(xml).at_xpath("//n:toma/n:CPF", namespaces).text
   end
 
   private

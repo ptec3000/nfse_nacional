@@ -28,13 +28,26 @@ module NfseNacional
       if foreign_tomador? && blank_string?(tomador[:nome])
         raise ArgumentError, "Tomador incompleto: informe o nome do tomador estrangeiro"
       end
-      if normalize_document(tomador&.[](:documento)) && blank_string?(tomador[:nome])
+      if Documento.normalizar(tomador&.[](:documento)) && blank_string?(tomador[:nome])
         raise ArgumentError, "Tomador incompleto: informe o nome quando houver CPF/CNPJ"
+      end
+      # Sem isto, "CPF: 529..." viraria um "CNPJ" de 14 posições que o XSD do :rtc aceita.
+      document = Documento.normalizar(tomador&.[](:documento))
+      if document && !foreign_tomador?
+        unless Documento.cpf?(document) || Documento.cnpj?(document)
+          raise ArgumentError, "Documento do tomador inválido: informe um CPF (11 dígitos) ou um CNPJ (14 posições)"
+        end
+        # Só o CNPJ alfanumérico tem o dígito conferido: antes as letras eram descartadas, então nada depende disso.
+        if Documento.alfanumerico?(document) && !Documento.valido?(document)
+          raise ArgumentError, "CNPJ alfanumérico do tomador com dígito verificador inválido"
+        end
       end
     end
 
+    # Não depende do leiaute: com CNPJ alfanumérico o Id só casa com o TSIdDPS do :rtc,
+    # e o to_xml(leiaute: :atual) recusa esse CNPJ antes de chegar aqui.
     def id
-      document = normalize_document(@prestador[:cnpj]).to_s
+      document = Documento.normalizar(@prestador[:cnpj]).to_s
       inscription_type = (document.length == 14) ? "2" : "1"
       municipality = @prestador[:municipio_ibge].to_s.gsub(/\D/, "").rjust(7, "0")
       series = @serie.to_s.gsub(/\D/, "").rjust(5, "0")
@@ -51,6 +64,9 @@ module NfseNacional
 
       rtc = leiaute == :rtc
       raise IbsCbsNaoConfigurado if rtc && !ibs_cbs_configured?
+      if !rtc && alphanumeric_cnpj?
+        raise ArgumentError, "CNPJ alfanumérico só é aceito no leiaute :rtc"
+      end
 
       service_value = format_decimal(@valores[:valor])
 
@@ -67,7 +83,7 @@ module NfseNacional
             xml.finNFSe "0" if rtc
             xml.cLocEmi @prestador[:municipio_ibge]
             xml.prest do
-              xml.CNPJ normalize_document(@prestador[:cnpj])
+              xml.CNPJ Documento.normalizar(@prestador[:cnpj])
               xml.IM @prestador[:im] if @prestador[:im]
               xml.xNome @prestador[:nome] if @prestador[:nome] && @tp_emit.to_s != "1"
               xml.regTrib do
@@ -99,7 +115,7 @@ module NfseNacional
                 end
                 xml.email @tomador[:email].to_s.strip unless blank_string?(@tomador[:email])
               end
-            elsif (document = normalize_document(@tomador&.[](:documento)))
+            elsif (document = Documento.normalizar(@tomador&.[](:documento)))
               xml.toma do
                 if document.length == 11
                   xml.CPF document
@@ -218,9 +234,10 @@ module NfseNacional
       !country.empty? && country != "BR"
     end
 
-    def normalize_document(value)
-      digits = value.to_s.gsub(/\D/, "")
-      digits.empty? ? nil : digits
+    # O XSD 1.00 (TSCNPJ = [0-9]{14}) não aceita letras; o do :rtc (NT 009) aceita.
+    def alphanumeric_cnpj?
+      Documento.alfanumerico?(@prestador[:cnpj]) ||
+        (!foreign_tomador? && Documento.alfanumerico?(@tomador&.[](:documento)))
     end
 
     def format_decimal(value)

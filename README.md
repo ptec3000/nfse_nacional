@@ -12,6 +12,7 @@ Monta a DPS, valida nos XSDs oficiais, assina com o certificado A1 e conversa co
 
 - Leiautes `:atual` (XSD 1.00) e `:rtc` (1.01 com IBS/CBS, NT 009, com os esquemas oficiais da produção restrita de 20/10/2026; origem em [`ORIGEM.md`](lib/nfse_nacional/schemas/rtc/ORIGEM.md)).
 - Tomador no Brasil e no exterior, inclusive comércio exterior.
+- CPF e CNPJ, inclusive o CNPJ alfanumérico (no leiaute `:rtc`).
 - Simples Nacional e regime normal.
 - Emissão com chave de idempotência, consulta de DPS e de NFS-e e cancelamento.
 - Assinatura XMLDSig com certificado A1.
@@ -21,7 +22,7 @@ Monta a DPS, valida nos XSDs oficiais, assina com o certificado A1 e conversa co
 Requer Ruby 3.4 ou superior. No Gemfile:
 
 ```ruby
-gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.1.3"
+gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.2.0"
 ```
 
 Depois, `bundle install` e:
@@ -117,6 +118,20 @@ end
 ## `ver_aplic`
 
 Informe o nome do seu app, com até 20 caracteres, em `Dps.new` e `Client.new`. O padrão é `"nfse_nacional"`; valores maiores geram `ArgumentError`. A DPS usa esse valor na emissão e o cliente o usa no pedido de cancelamento.
+
+## CPF e CNPJ (inclusive alfanumérico)
+
+A DPS aceita o documento com ou sem pontuação, em maiúsculas ou minúsculas, e envia só `[0-9A-Z]`. O CNPJ alfanumérico (IN RFB 2.229/2024: 12 posições `[0-9A-Z]` e 2 dígitos verificadores numéricos) vale para o prestador e para o tomador, mas só no leiaute `:rtc`: o XSD 1.00 aceita apenas números, e `to_xml(leiaute: :atual)` levanta `ArgumentError` ("CNPJ alfanumérico só é aceito no leiaute :rtc"). Documento de tomador que não seja CPF nem CNPJ é recusado, e o CNPJ alfanumérico do tomador precisa ter dígito verificador válido. O cancelamento ainda não aceita CNPJ alfanumérico do autor: o XSD de eventos 1.00 só admite números.
+
+A DPS não confere os dígitos verificadores. Para isso, use `NfseNacional::Documento` antes de montá-la:
+
+```ruby
+NfseNacional::Documento.normalizar("12.abc.345/01de-35") # => "12ABC34501DE35"
+NfseNacional::Documento.cnpj?("12.ABC.345/01DE-35")       # => true
+NfseNacional::Documento.alfanumerico?("12ABC34501DE35")   # => true
+NfseNacional::Documento.valido?("12.ABC.345/01DE-35")     # => true
+NfseNacional::Documento.valido?("111.111.111-11")         # => false
+```
 
 ## Quando a Sefin muda o leiaute
 
