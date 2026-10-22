@@ -6,6 +6,8 @@ module NfseNacional
   class Dps
     LEIAUTES = %i[atual rtc].freeze
     IBS_CBS_KEYS = %i[c_ind_op cst c_class_trib].freeze
+    # cIndOp é opcional no XSD 1.01; a Sefin recusa (E0859) quando a operação não tem tributação IBS/CBS (ex.: CST 410, exportação).
+    IBS_CBS_REQUIRED_KEYS = %i[cst c_class_trib].freeze
 
     def initialize(ambiente:, prestador:, tomador:, servico:, valores:, competencia:, serie:, numero:,
       versao: "1.00", ver_aplic: NfseNacional::VER_APLIC, tp_emit: "1", now: Time.now, ibs_cbs: nil)
@@ -40,7 +42,7 @@ module NfseNacional
       "DPS#{municipality}#{inscription_type}#{document.rjust(14, "0")}#{series}#{number}"
     end
 
-    def ibs_cbs_configured? = IBS_CBS_KEYS.all? { |key| !@ibs_cbs.to_h[key].to_s.strip.empty? }
+    def ibs_cbs_configured? = IBS_CBS_REQUIRED_KEYS.all? { |key| !@ibs_cbs.to_h[key].to_s.strip.empty? }
 
     # :rtc é o leiaute que a homologação exige desde 19/10/2026 (finNFSe e grupo IBSCBS, NT 009);
     # :atual é o de produção até ela virar.
@@ -188,7 +190,8 @@ module NfseNacional
             end
             if rtc
               xml.IBSCBS do
-                xml.cIndOp @ibs_cbs[:c_ind_op].to_s
+                c_ind_op = @ibs_cbs[:c_ind_op].to_s.strip
+                xml.cIndOp c_ind_op unless c_ind_op.empty?
                 xml.indDest "0"
                 xml.valores do
                   xml.trib do
