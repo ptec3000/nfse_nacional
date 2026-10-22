@@ -8,6 +8,10 @@
 - Cancelamento com CNPJ alfanumérico do autor levanta `ArgumentError`: o XSD de eventos 1.00 só aceita números e a gem ainda não tem o de eventos do `:rtc`.
 - A normalização do documento passa a manter letras (em maiúsculas) em vez de descartá-las: DPS, `Cancelamento` e a chave de idempotência do `Client#cancelar`. CPF e CNPJ numéricos geram o mesmo XML e a mesma chave de antes.
 
+## 0.1.3
+
+- `cIndOp` passa a ser opcional no grupo IBS/CBS (leiaute `:rtc`): sai do XML quando vem em branco. A homologação da Sefin recusa com E0859 o `cIndOp` em operação sem tributação IBS/CBS (ex.: exportação com CST 410 / cClassTrib 410004), testado em 22/10/2026. `CST` e `cClassTrib` continuam obrigatórios.
+
 ## 0.1.2
 
 - Leiaute `:rtc` passa a usar os XSDs oficiais da produção restrita de 20/10/2026 (NT 009), sem alterações; sai a cópia derivada (`PATCH.md`). Origem e hash em `schemas/rtc/ORIGEM.md`.
