@@ -10,7 +10,7 @@ Monta a DPS, valida nos XSDs oficiais, assina com o certificado A1 e conversa co
 
 ## O que ela cobre
 
-- Leiautes `:atual` (XSD 1.00) e `:rtc` (1.01 com IBS/CBS, com o ajuste da homologação descrito em [`PATCH.md`](lib/nfse_nacional/schemas/rtc/PATCH.md)).
+- Leiautes `:atual` (XSD 1.00) e `:rtc` (1.01 com IBS/CBS, NT 009, com os esquemas oficiais da produção restrita de 20/10/2026; origem em [`ORIGEM.md`](lib/nfse_nacional/schemas/rtc/ORIGEM.md)).
 - Tomador no Brasil e no exterior, inclusive comércio exterior.
 - Simples Nacional e regime normal.
 - Emissão com chave de idempotência, consulta de DPS e de NFS-e e cancelamento.
@@ -21,7 +21,7 @@ Monta a DPS, valida nos XSDs oficiais, assina com o certificado A1 e conversa co
 Requer Ruby 3.4 ou superior. No Gemfile:
 
 ```ruby
-gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.1.1"
+gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.1.2"
 ```
 
 Depois, `bundle install` e:
@@ -120,7 +120,7 @@ Informe o nome do seu app, com até 20 caracteres, em `Dps.new` e `Client.new`. 
 
 ## Quando a Sefin muda o leiaute
 
-O leiaute `:rtc` acompanha a versão 1.01 com IBS/CBS da reforma tributária. Os XSDs distribuídos e o ajuste necessário para a homologação estão documentados em [`schemas/rtc/PATCH.md`](lib/nfse_nacional/schemas/rtc/PATCH.md).
+O leiaute `:rtc` acompanha a versão 1.01 com IBS/CBS da reforma tributária (NT 009). Os XSDs são os oficiais da produção restrita publicados em 20/10/2026, sem alterações; a origem e o hash do pacote estão em [`schemas/rtc/ORIGEM.md`](lib/nfse_nacional/schemas/rtc/ORIGEM.md). Segundo o Comitê Gestor, essa versão entra em produção em 01/12/2026.
 
 Para atualizar: acrescente uma fixture com XML que a Sefin aceitou, sem dados reais de pessoas, e um teste que cubra o caso. Publique uma versão nova da gem com o ajuste e os apps passam a usar a nova tag. Assim cada app escolhe quando adotar a mudança.
 
