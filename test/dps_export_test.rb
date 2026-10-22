@@ -32,6 +32,25 @@ class NfseNacionalDpsExportTest < NfseNacional::TestCase
     assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc) }
   end
 
+  test "exportação imune (CST 410) sai sem cIndOp quando ele vem em branco" do
+    xml = NfseNacional::Dps.new(**export_attributes, ibs_cbs: {c_ind_op: "", cst: "410", c_class_trib: "410004"})
+      .to_xml(leiaute: :rtc)
+    assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc) }
+    doc = Nokogiri::XML(xml).tap(&:remove_namespaces!)
+    assert_nil doc.at("infDPS/IBSCBS/cIndOp")
+    assert_equal "410", doc.at("infDPS/IBSCBS/valores/trib/CST").text
+    assert_equal "410004", doc.at("infDPS/IBSCBS/valores/trib/cClassTrib").text
+  end
+
+  test "rtc exige CST e cClassTrib, mas não o cIndOp" do
+    assert_raises(NfseNacional::IbsCbsNaoConfigurado) do
+      NfseNacional::Dps.new(**export_attributes, ibs_cbs: {c_ind_op: "030101", cst: "", c_class_trib: "410004"}).to_xml(leiaute: :rtc)
+    end
+    assert_nothing_raised do
+      NfseNacional::Dps.new(**export_attributes, ibs_cbs: {cst: "410", c_class_trib: "410004"}).to_xml(leiaute: :rtc)
+    end
+  end
+
   test "DPS de exportação valida no XSD" do
     assert_nothing_raised { NfseNacional::Schema.validate_dps!(NfseNacional::Dps.new(**export_attributes).to_xml) }
   end

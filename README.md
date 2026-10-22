@@ -21,7 +21,7 @@ Monta a DPS, valida nos XSDs oficiais, assina com o certificado A1 e conversa co
 Requer Ruby 3.4 ou superior. No Gemfile:
 
 ```ruby
-gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.1.2"
+gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.1.3"
 ```
 
 Depois, `bundle install` e:
