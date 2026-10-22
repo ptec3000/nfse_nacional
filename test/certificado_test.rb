@@ -18,8 +18,13 @@ class NfseNacionalCertificadoTest < NfseNacional::TestCase
     travel_to(expiry) { assert cert.expired? }
   end
 
+  test "lê CNPJ alfanumérico do subject" do
+    cert = NfseNacional::Certificado.new(pfx: NfseTestCertificate.pfx(cnpj: "12ABC34501DE35"), senha: "teste")
+    assert_equal "12ABC34501DE35", cert.cnpj
+  end
+
   test "subject sem CNPJ retorna nil" do
-    [nil, "12345678909", "123456780001950"].each do |cnpj|
+    [nil, "12345678909", "123456780001950", "12abc34501de35", "12ABC34501DEAB"].each do |cnpj|
       cert = NfseNacional::Certificado.new(pfx: NfseTestCertificate.pfx(cnpj: cnpj), senha: "teste")
       assert_nil cert.cnpj
     end
