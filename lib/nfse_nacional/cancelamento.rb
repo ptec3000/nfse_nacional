@@ -9,6 +9,9 @@ module NfseNacional
       @access_key = access_key
       @ambiente = AMBIENTES.fetch(ambiente)
       @cnpj_autor = Documento.normalizar(cnpj_autor).to_s
+      if Documento.alfanumerico?(@cnpj_autor)
+        raise ArgumentError, "Cancelamento com CNPJ alfanumérico ainda não é aceito: o XSD de eventos 1.00 só admite números"
+      end
       @motivo = motivo
       @codigo_motivo = codigo_motivo
       @ver_aplic = NfseNacional.ver_aplic!(ver_aplic)

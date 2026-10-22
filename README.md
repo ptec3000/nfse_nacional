@@ -121,7 +121,7 @@ Informe o nome do seu app, com até 20 caracteres, em `Dps.new` e `Client.new`. 
 
 ## CPF e CNPJ (inclusive alfanumérico)
 
-A DPS aceita o documento com ou sem pontuação, em maiúsculas ou minúsculas, e envia só `[0-9A-Z]`. O CNPJ alfanumérico (IN RFB 2.229/2024: 12 posições `[0-9A-Z]` e 2 dígitos verificadores numéricos) vale para o prestador e para o tomador, mas só no leiaute `:rtc`: o XSD 1.00 aceita apenas números, e `to_xml(leiaute: :atual)` levanta `ArgumentError` ("CNPJ alfanumérico só é aceito no leiaute :rtc").
+A DPS aceita o documento com ou sem pontuação, em maiúsculas ou minúsculas, e envia só `[0-9A-Z]`. O CNPJ alfanumérico (IN RFB 2.229/2024: 12 posições `[0-9A-Z]` e 2 dígitos verificadores numéricos) vale para o prestador e para o tomador, mas só no leiaute `:rtc`: o XSD 1.00 aceita apenas números, e `to_xml(leiaute: :atual)` levanta `ArgumentError` ("CNPJ alfanumérico só é aceito no leiaute :rtc"). Documento de tomador que não seja CPF nem CNPJ é recusado, e o CNPJ alfanumérico do tomador precisa ter dígito verificador válido. O cancelamento ainda não aceita CNPJ alfanumérico do autor: o XSD de eventos 1.00 só admite números.
 
 A DPS não confere os dígitos verificadores. Para isso, use `NfseNacional::Documento` antes de montá-la:
 

@@ -69,6 +69,21 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
     end
   end
 
+  test "documento do tomador que não é CPF nem CNPJ é recusado em qualquer leiaute" do
+    ["123", "12ABC34501DE3X", "529.982.247-2"].each do |documento|
+      error = assert_raises(ArgumentError) { dps(tomador: {documento: documento, nome: "Fulano"}) }
+      assert_equal "Documento do tomador inválido: informe um CPF (11 dígitos) ou um CNPJ (14 posições)", error.message
+    end
+  end
+
+  test "CNPJ alfanumérico do tomador precisa ter dígito verificador válido" do
+    ["CPF: 529.982.247-25", "12.ABC.345/01DE-36"].each do |documento|
+      error = assert_raises(ArgumentError) { dps(tomador: {documento: documento, nome: "Fulano"}) }
+      assert_equal "CNPJ alfanumérico do tomador com dígito verificador inválido", error.message
+    end
+    assert_nothing_raised { dps(tomador: {documento: "12.ABC.345/01DE-35", nome: "Fulano"}) }
+  end
+
   test "documento exige nome do tomador" do
     [nil, "", "   "].each do |name|
       error = assert_raises(ArgumentError) { dps(tomador: {documento: "12345678909", nome: name}).to_xml }

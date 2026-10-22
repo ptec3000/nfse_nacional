@@ -29,6 +29,17 @@ module NfseNacional
       if Documento.normalizar(tomador&.[](:documento)) && blank_string?(tomador[:nome])
         raise ArgumentError, "Tomador incompleto: informe o nome quando houver CPF/CNPJ"
       end
+      # Sem isto, "CPF: 529..." viraria um "CNPJ" de 14 posições que o XSD do :rtc aceita.
+      document = Documento.normalizar(tomador&.[](:documento))
+      if document && !foreign_tomador?
+        unless Documento.cpf?(document) || Documento.cnpj?(document)
+          raise ArgumentError, "Documento do tomador inválido: informe um CPF (11 dígitos) ou um CNPJ (14 posições)"
+        end
+        # Só o CNPJ alfanumérico tem o dígito conferido: antes as letras eram descartadas, então nada depende disso.
+        if Documento.alfanumerico?(document) && !Documento.valido?(document)
+          raise ArgumentError, "CNPJ alfanumérico do tomador com dígito verificador inválido"
+        end
+      end
     end
 
     # Não depende do leiaute: com CNPJ alfanumérico o Id só casa com o TSIdDPS do :rtc,
