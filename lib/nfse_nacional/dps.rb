@@ -120,7 +120,7 @@ module NfseNacional
                 xml.cTribNac @servico[:c_trib_nac]
                 municipal_code = @servico[:c_trib_mun].to_s.gsub(/\D/, "")
                 xml.cTribMun municipal_code if municipal_code.match?(/^\d{3}$/)
-                # A homologação (rtc) exige o NBS antes da descrição desde 20/10/2026; o XSD 1.01 publicado o põe depois.
+                # No leiaute rtc (XSD oficial de 20/10/2026) o NBS vem antes da descrição; no 1.00, depois.
                 xml.cNBS @servico[:nbs] if rtc && @servico[:nbs]
                 xml.xDescServ @servico[:descricao]
                 xml.cNBS @servico[:nbs] if !rtc && @servico[:nbs]

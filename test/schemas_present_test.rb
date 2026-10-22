@@ -4,7 +4,7 @@ class NfseNacionalSchemasPresentTest < NfseNacional::TestCase
   ROOT = File.expand_path("../lib/nfse_nacional/schemas", __dir__)
 
   test "XSDs dos dois leiautes e do evento estão na gem" do
-    %w[DPS_v1.00.xsd pedRegEvento_v1.00.xsd rtc/DPS_v1.01.xsd 1.01/DPS_v1.01.xsd rtc/PATCH.md].each do
+    %w[DPS_v1.00.xsd pedRegEvento_v1.00.xsd rtc/DPS_v1.01.xsd 1.01/DPS_v1.01.xsd rtc/ORIGEM.md].each do
       assert File.file?(File.join(ROOT, it)), "falta #{it}"
     end
   end

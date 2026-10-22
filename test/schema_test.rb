@@ -24,6 +24,12 @@ class NfseNacionalSchemaTest < NfseNacional::TestCase
     assert_raises(NfseNacional::Schema::Invalid) { NfseNacional::Schema.validate_dps!(fin_inside, leiaute: :rtc) }
   end
 
+  test "leiaute rtc segue o padrão oficial de série: até 89999" do
+    xml = fixture("dps_rtc_homologacao.xml")
+    assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml.sub("<serie>900</serie>", "<serie>49999</serie>"), leiaute: :rtc) }
+    assert_raises(NfseNacional::Schema::Invalid) { NfseNacional::Schema.validate_dps!(xml.sub("<serie>900</serie>", "<serie>99999</serie>"), leiaute: :rtc) }
+  end
+
   test "leiaute desconhecido é erro de programação" do
     assert_raises(ArgumentError) { NfseNacional::Schema.validate_dps!(fixture("dps_golden.xml"), leiaute: :novo) }
   end
