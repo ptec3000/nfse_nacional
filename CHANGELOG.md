@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- Parametrização municipal do ADN com mTLS e o mesmo certificado/ambiente do `Client`: `historico_aliquotas`, `codigos_municipais` e `codigo_municipal_existe?`. Códigos com ou sem pontuação são enviados no formato `NN.NN.NN.NNN`.
+- Novo valor `NfseNacional::CodigosMunicipais`, com `exige?` e `codigos`. A sondagem consulta `.000` primeiro e depois `001..ate`, reutiliza uma conexão sem novas tentativas e respeita um prazo monotônico total; falhas e resultados incompletos devolvem `nil`.
+- O histórico devolve Array no 200 e `nil` no 404; demais falhas levantam `NfseNacional::Error`. As consultas auxiliares devolvem `nil` quando desconhecidas, inclusive por timeout.
+
 ## 0.2.1
 
 - `Certificado#cnpj` lê o CNPJ alfanumérico do CN do e-CNPJ (`NOME:12ABC34501DE35`); antes só achava CNPJ numérico e a empresa com letras tinha o certificado recusado.

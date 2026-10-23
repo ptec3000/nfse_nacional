@@ -22,7 +22,7 @@ Monta a DPS, valida nos XSDs oficiais, assina com o certificado A1 e conversa co
 Requer Ruby 3.4 ou superior. No Gemfile:
 
 ```ruby
-gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.2.1"
+gem "nfse_nacional", github: "ptec3000/nfse_nacional", tag: "v0.3.0"
 ```
 
 Depois, `bundle install` e:
@@ -102,6 +102,34 @@ end
 ```
 
 `consultar_nfse` devolve um resultado com `nfse_xml`, o XML autorizado que pode ser entregue à [`danfse`](https://github.com/ptec3000/danfse). Confira o `status` de cada operação antes de usar o XML ou a chave de acesso.
+
+## Código municipal (cTribMun)
+
+O mesmo `client` consulta a parametrização municipal do ADN com o certificado A1 e o ambiente configurados:
+
+```ruby
+municipais = client.codigos_municipais(municipio_ibge: "3106200", c_trib_nac: "171101")
+if municipais
+  puts municipais.exige?  # => true; false se o serviço .000 existe
+  puts municipais.codigos # => ["001", ...]; [] quando não exige cTribMun
+end
+
+existe = client.codigo_municipal_existe?(
+  municipio_ibge: "3106200", c_trib_nac: "171101", c_trib_mun: "099"
+) # => true (200), false (404) ou nil (desconhecido)
+
+aliquotas = client.historico_aliquotas(
+  municipio_ibge: "3106200", codigo_servico: "17.11.01.001"
+) # => [{"Incidencia" => "SIM", "Aliq" => 5.0, "DtIni" => "...", "DtFim" => nil}, ...]
+```
+
+`codigos_municipais(municipio_ibge:, c_trib_nac:, ate: 10, prazo: 8)` devolve `NfseNacional::CodigosMunicipais` (com `exige?` e `codigos`) ou `nil` quando não é possível determinar. Primeiro consulta `.000`; se existir, dispensa o código municipal. Caso contrário, sonda de `001` até `ate` em ordem (`ate` deve ser inteiro entre 1 e 999). Todos os 404, falha de rede, HTTP inesperado ou prazo esgotado devolvem `nil`, sem lista parcial. A sondagem usa uma conexão, sem novas tentativas, com prazo monotônico total de `prazo` segundos e limite de até 3 segundos por operação. Respostas que chegam depois do prazo são descartadas.
+
+A lista sondada **não é um catálogo completo**. Para conferir um código fora dela, use `codigo_municipal_existe?(municipio_ibge:, c_trib_nac:, c_trib_mun:, prazo: 8)`, que aplica os mesmos limites. Só o 404 do código exato permite considerá-lo inexistente. `nil` significa desconhecido; cabe ao app decidir como seguir. Essas duas consultas auxiliares também devolvem `nil` para entradas inválidas e não mantêm cache.
+
+`historico_aliquotas(municipio_ibge:, codigo_servico:)` devolve o Array de alíquotas daquele código (inclusive `[]`) ou `nil` no 404. Outros HTTPs, falhas de comunicação e respostas inválidas levantam `NfseNacional::Error`, sem detalhes do certificado; entradas inválidas levantam `ArgumentError`. Essa consulta usa `open_timeout` e `read_timeout` do cliente. Diferente das operações fiscais, não devolve `Result`.
+
+O município deve ter sete dígitos. O código nacional aceita `171101` ou `17.11.01`; o código completo do histórico aceita `171101001` ou `17.11.01.001`. O código municipal exato deve ter três dígitos (`"001"`). As requisições do histórico sempre enviam o código pontuado. O ambiente `:producao` usa `https://adn.nfse.gov.br`; `:homologacao`, `https://adn.producaorestrita.nfse.gov.br`.
 
 ## Resultado e novas tentativas
 
