@@ -1,4 +1,5 @@
 require "net/http"
+require "timeout"
 require "json"
 require "zlib"
 require "stringio"
@@ -11,6 +12,10 @@ module NfseNacional
     SEFIN_URLS = {
       producao: "https://sefin.nfse.gov.br/SefinNacional",
       homologacao: "https://sefin.producaorestrita.nfse.gov.br/SefinNacional"
+    }.freeze
+    ADN_URLS = {
+      producao: "https://adn.nfse.gov.br",
+      homologacao: "https://adn.producaorestrita.nfse.gov.br"
     }.freeze
     NETWORK_ERRORS = [Timeout::Error, SocketError, OpenSSL::SSL::SSLError, IOError,
       Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ENETUNREACH, Errno::EADDRNOTAVAIL, Errno::EHOSTUNREACH,
@@ -53,7 +58,116 @@ module NfseNacional
         payload: {pedidoRegistroEventoXmlGZipB64: gzip_base64(signed)})
     end
 
+    def historico_aliquotas(municipio_ibge:, codigo_servico:)
+      path = adn_path(municipio_ibge, codigo_servico)
+      uri = URI("#{ADN_URLS.fetch(@ambiente)}#{path}")
+      http = adn_http
+      http.open_timeout = @open_timeout
+      http.read_timeout = @read_timeout
+      response = http.request(Net::HTTP::Get.new(uri, "Accept" => "application/json"))
+      return nil if response.code == "404"
+      raise Error, "Resposta do ADN (HTTP #{response.code})" unless response.code == "200"
+
+      data = JSON.parse(response.body.to_s)
+      aliquotas = data.is_a?(Hash) && data["aliquotas"]
+      list = aliquotas.is_a?(Hash) && aliquotas[path.split("/")[-2]]
+      raise Error, "Histórico de alíquotas inválido na resposta do ADN" unless list.is_a?(Array)
+
+      list
+    rescue JSON::ParserError
+      raise Error, "JSON inválido na resposta do ADN"
+    rescue *NETWORK_ERRORS => error
+      raise Error, "Falha de comunicação com o ADN (#{error.class})", cause: nil
+    end
+
+    def codigos_municipais(municipio_ibge:, c_trib_nac:, ate: 10, prazo: 8)
+      raise ArgumentError unless ate.is_a?(Integer) && ate.between?(1, 999)
+
+      prefix = adn_prefix(c_trib_nac)
+      adn_lookup(prazo) do |http, deadline|
+        if adn_exists?(http, adn_path(municipio_ibge, "#{prefix}.000"), deadline)
+          CodigosMunicipais.new(exige: false, codigos: [])
+        else
+          codes = (1..ate).map { format("%03d", it) }.select do |code|
+            adn_exists?(http, adn_path(municipio_ibge, "#{prefix}.#{code}"), deadline)
+          end
+          CodigosMunicipais.new(exige: true, codigos: codes) unless codes.empty?
+        end
+      end
+    rescue
+      nil
+    end
+
+    def codigo_municipal_existe?(municipio_ibge:, c_trib_nac:, c_trib_mun:, prazo: 8)
+      raise ArgumentError unless c_trib_mun.to_s.match?(/\A[0-9]{3}\z/)
+
+      path = adn_path(municipio_ibge, "#{adn_prefix(c_trib_nac)}.#{c_trib_mun}")
+      adn_lookup(prazo) { |http, deadline| adn_exists?(http, path, deadline) }
+    rescue
+      nil
+    end
+
     private
+
+    def adn_prefix(code)
+      value = code.to_s
+      unless value.match?(/\A(?:[0-9]{6}|[0-9]{2}\.[0-9]{2}\.[0-9]{2})\z/)
+        raise ArgumentError, "c_trib_nac deve conter seis dígitos (NN.NN.NN)"
+      end
+      value.delete(".").scan(/../).join(".")
+    end
+
+    def adn_path(municipio_ibge, code)
+      raise ArgumentError, "municipio_ibge deve conter sete dígitos" unless municipio_ibge.to_s.match?(/\A[0-9]{7}\z/)
+
+      value = code.to_s
+      unless value.match?(/\A(?:[0-9]{9}|[0-9]{2}\.[0-9]{2}\.[0-9]{2}\.[0-9]{3})\z/)
+        raise ArgumentError, "codigo_servico deve conter nove dígitos (NN.NN.NN.NNN)"
+      end
+      digits = value.delete(".")
+      dotted = "#{digits[0, 2]}.#{digits[2, 2]}.#{digits[4, 2]}.#{digits[6, 3]}"
+      "/parametrizacao/#{municipio_ibge}/#{dotted}/historicoaliquotas"
+    end
+
+    def adn_http
+      uri = URI(ADN_URLS.fetch(@ambiente))
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.cert = @certificado.certificate
+      http.key = @certificado.key
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.max_retries = 0
+      http
+    end
+
+    def adn_lookup(prazo)
+      raise ArgumentError unless prazo.is_a?(Numeric) && prazo.positive? && prazo.finite?
+
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + prazo
+      http = adn_http
+      http.open_timeout = http.read_timeout = http.write_timeout = [3, adn_remaining(deadline)].min
+      Timeout.timeout(adn_remaining(deadline)) do
+        http.start { yield http, deadline }
+      end
+    end
+
+    def adn_remaining(deadline)
+      seconds = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      raise Timeout::Error if seconds <= 0
+
+      seconds
+    end
+
+    def adn_exists?(http, path, deadline)
+      http.open_timeout = http.read_timeout = http.write_timeout = [3, adn_remaining(deadline)].min
+      response = http.get(path, "Accept" => "application/json")
+      adn_remaining(deadline)
+      case response.code
+      when "200" then true
+      when "404" then false
+      else raise Net::HTTPBadResponse, "Parametrização do ADN indisponível"
+      end
+    end
 
     def perform(path, payload: nil, request_xml: nil, idempotency_key: nil, lookup: false)
       response = request(URI("#{@base_url}#{path}"), payload: payload, idempotency_key: idempotency_key)
