@@ -57,13 +57,18 @@ module NfseNacional
 
     def ibs_cbs_configured? = IBS_CBS_REQUIRED_KEYS.all? { |key| !@ibs_cbs.to_h[key].to_s.strip.empty? }
 
+    # Sem nenhum valor preenchido o grupo IBSCBS sai do XML (minOccurs=0): o Simples só é obrigado a informá-lo a partir
+    # de 2027 (Ato Conjunto RFB/CGIBS nº 7/2026). Quem decide se ele é obrigatório é quem emite.
+    def ibs_cbs_blank? = @ibs_cbs.to_h.values.all? { |value| value.to_s.strip.empty? }
+
     # :rtc é o leiaute que a homologação exige desde 19/10/2026 (finNFSe e grupo IBSCBS, NT 009);
     # :atual é o de produção até ela virar.
     def to_xml(leiaute: :atual)
       raise ArgumentError, "Leiaute desconhecido: #{leiaute.inspect}" unless LEIAUTES.include?(leiaute)
 
       rtc = leiaute == :rtc
-      raise IbsCbsNaoConfigurado if rtc && !ibs_cbs_configured?
+      ibs_cbs = rtc && !ibs_cbs_blank?
+      raise IbsCbsNaoConfigurado if ibs_cbs && !ibs_cbs_configured?
       if !rtc && alphanumeric_cnpj?
         raise ArgumentError, "CNPJ alfanumérico só é aceito no leiaute :rtc"
       end
@@ -204,7 +209,7 @@ module NfseNacional
                 end
               end
             end
-            if rtc
+            if ibs_cbs
               xml.IBSCBS do
                 c_ind_op = @ibs_cbs[:c_ind_op].to_s.strip
                 xml.cIndOp c_ind_op unless c_ind_op.empty?
