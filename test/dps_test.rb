@@ -183,8 +183,18 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
     assert_equal atual.to_xml, rtc.to_xml
   end
 
-  test "rtc sem IBS CBS completo levanta erro claro" do
-    [nil, {}, IBS_CBS.merge(cst: ""), IBS_CBS.except(:c_class_trib)].each do |ibs_cbs|
+  test "rtc sem IBS CBS sai sem o grupo e passa no XSD" do
+    [nil, {}, {c_ind_op: "", cst: " ", c_class_trib: nil}, {"cst" => ""}].each do |ibs_cbs|
+      xml = dps(ibs_cbs: ibs_cbs).to_xml(leiaute: :rtc)
+      NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)
+      doc = Nokogiri::XML(xml).remove_namespaces!
+      assert_nil doc.at("IBSCBS")
+      assert_equal "0", doc.at("infDPS > finNFSe").text
+    end
+  end
+
+  test "rtc com IBS CBS incompleto levanta erro claro" do
+    [IBS_CBS.merge(cst: ""), IBS_CBS.except(:c_class_trib), {c_ind_op: "030101"}, {"cst" => "000", "c_class_trib" => "000001"}].each do |ibs_cbs|
       error = assert_raises(NfseNacional::IbsCbsNaoConfigurado) { dps(ibs_cbs: ibs_cbs).to_xml(leiaute: :rtc) }
       assert_equal "IBS/CBS não configurado", error.message
     end
@@ -277,14 +287,11 @@ class NfseNacionalDpsTest < NfseNacional::TestCase
     assert_nothing_raised { NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc) }
   end
 
-  test "rtc sem IBS CBS completo levanta erro claro (cópia alternativa)" do
+  test "ibs_cbs_configured? só com CST e cClassTrib" do
     [nil, {}, IBS_CBS.merge(cst: ""), IBS_CBS.except(:c_class_trib)].each do |ibs_cbs|
-      error = assert_raises(NfseNacional::IbsCbsNaoConfigurado) { dps(ibs_cbs: ibs_cbs).to_xml(leiaute: :rtc) }
-      assert_equal "IBS/CBS não configurado", error.message
       refute dps(ibs_cbs: ibs_cbs).ibs_cbs_configured?
     end
     assert dps(ibs_cbs: IBS_CBS).ibs_cbs_configured?
-    assert_nothing_raised { dps(ibs_cbs: nil).to_xml }
   end
 
   test "rtc aceita tomador com CNPJ alfanumérico e passa no XSD" do

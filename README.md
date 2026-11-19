@@ -61,7 +61,7 @@ when :error
 end
 ```
 
-Guarde a DPS e a chave de idempotência para reutilizá-las nas novas tentativas. Para IBS/CBS, passe `ibs_cbs: {c_ind_op: "030101", cst: "000", c_class_trib: "000001"}` à DPS e `leiaute: :rtc` a `emitir`. Use dados e certificado próprios ao integrar; os valores acima são exemplos de homologação.
+Guarde a DPS e a chave de idempotência para reutilizá-las nas novas tentativas. Para IBS/CBS, passe `ibs_cbs: {c_ind_op: "030101", cst: "000", c_class_trib: "000001"}` à DPS e `leiaute: :rtc` a `emitir`. Sem `ibs_cbs` (ou com todos os valores em branco), a DPS `:rtc` sai sem o grupo `IBSCBS`: decida no seu sistema quando ele é obrigatório (o Simples Nacional, a partir de 2027). Use dados e certificado próprios ao integrar; os valores acima são exemplos de homologação.
 
 ## Consultar e cancelar
 
