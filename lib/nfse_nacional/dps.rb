@@ -253,12 +253,20 @@ module NfseNacional
     NATIONAL_ADDRESS_LIMITS = {logradouro: ["logradouro", 255], numero: ["número", 60],
                                complemento: ["complemento", 156], bairro: ["bairro", 60]}.freeze
 
+    # TSString do XSD: só os caracteres de "!" a "ÿ", com espaço apenas no meio.
+    XSD_TEXT = /\A[!-ÿ](?:[ -ÿ]*[!-ÿ])?\z/
+    # Aspas e travessões do teclado do celular e do Word, que o TSString recusa, viram os equivalentes simples.
+    TYPOGRAPHIC = {"‘" => "'", "’" => "'", "“" => '"', "”" => '"', "–" => "-", "—" => "-"}.freeze
+
     # O endereço do tomador brasileiro vai só completo: o XSD exige cMun, CEP, xLgr, nro e xBairro juntos, e um cadastro
     # pela metade sai como antes, sem <end>. Completo e fora do formato do XSD, recusa antes de chegar à Sefin.
     def national_address(address)
       return unless address.is_a?(Hash)
 
-      values = [*NATIONAL_ADDRESS_REQUIRED, :complemento].to_h { |key| [key, address[key].to_s.gsub(/\s+/, " ").strip] }
+      address = address.transform_keys(&:to_sym)
+      values = [*NATIONAL_ADDRESS_REQUIRED, :complemento].to_h do |key|
+        [key, address[key].to_s.gsub(/[‘’“”–—]/, TYPOGRAPHIC).gsub(/[[:space:]]+/, " ").strip]
+      end
       return if NATIONAL_ADDRESS_REQUIRED.any? { |key| values[key].empty? }
 
       values[:cep] = values[:cep].gsub(/\D/, "")
@@ -267,7 +275,11 @@ module NfseNacional
         raise ArgumentError, "Código IBGE do município do tomador inválido: informe 7 dígitos"
       end
       NATIONAL_ADDRESS_LIMITS.each do |key, (label, limit)|
+        next if values[key].empty?
         raise ArgumentError, "O #{label} do tomador passa de #{limit} caracteres" if values[key].length > limit
+        unless values[key].match?(XSD_TEXT)
+          raise ArgumentError, "O #{label} do tomador tem caractere não aceito pela Sefin: #{values[key]}"
+        end
       end
       values[:complemento] = nil if values[:complemento].empty?
       values

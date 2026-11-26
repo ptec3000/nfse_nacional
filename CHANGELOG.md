@@ -4,7 +4,7 @@
 
 - Endereço do tomador brasileiro: com CPF/CNPJ e `endereco: {municipio_ibge:, cep:, logradouro:, numero:, complemento:, bairro:}` completo, a DPS leva `toma/end` com `endNac` (`cMun`, `CEP`), `xLgr`, `nro`, `xCpl` (opcional) e `xBairro`, nos dois leiautes. Antes, só o tomador estrangeiro levava endereço.
 - Sem endereço, ou com algum campo obrigatório em branco, a DPS sai igual à da 0.4.0 (sem `<end>`).
-- Endereço completo fora do XSD (CEP sem 8 dígitos, município sem 7, campo acima do tamanho máximo) levanta `ArgumentError` ao criar a DPS. O CEP aceita pontuação; espaços repetidos e quebras de linha viram um espaço.
+- Endereço completo fora do XSD (CEP sem 8 dígitos, município sem 7, campo acima do tamanho máximo ou com caractere fora do `TSString`, como emoji) levanta `ArgumentError` ao criar a DPS. O CEP aceita pontuação; espaços repetidos e quebras de linha viram um espaço; aspas e travessões tipográficos (`’ “ ” –`) viram os simples; chaves em string também valem.
 
 ## 0.4.0
 

@@ -60,15 +60,31 @@ class NfseNacionalDpsNationalTomadorAddressTest < NfseNacional::TestCase
     assert_equal "Centro", address.at_xpath("n:xBairro", NS).text
   end
 
-  test "sem endereço, ou com endereço incompleto, a DPS sai igual à de hoje" do
-    baseline = NfseNacional::Dps.new(**@attributes).to_xml(leiaute: :rtc)
+  test "sem endereço, ou com endereço incompleto, a DPS sai igual à de hoje nos dois leiautes" do
+    [:atual, :rtc].each do |leiaute|
+      baseline = NfseNacional::Dps.new(**@attributes).to_xml(leiaute: leiaute)
 
-    [nil, {}, ENDERECO.merge(bairro: ""), ENDERECO.except(:cep), ENDERECO.merge(municipio_ibge: nil),
-      ENDERECO.merge(logradouro: "  "), ENDERECO.except(:numero)].each do |endereco|
-      tomador = @attributes[:tomador].merge(endereco: endereco)
-      assert_equal baseline, NfseNacional::Dps.new(**@attributes.merge(tomador: tomador)).to_xml(leiaute: :rtc),
-        "endereço #{endereco.inspect} deveria ser ignorado"
+      [nil, {}, ENDERECO.merge(bairro: ""), ENDERECO.except(:cep), ENDERECO.merge(municipio_ibge: nil),
+        ENDERECO.merge(logradouro: "  "), ENDERECO.merge(bairro: "\u00A0"), ENDERECO.except(:numero)].each do |endereco|
+        tomador = @attributes[:tomador].merge(endereco: endereco)
+        assert_equal baseline, NfseNacional::Dps.new(**@attributes.merge(tomador: tomador)).to_xml(leiaute: leiaute),
+          "endereço #{endereco.inspect} deveria ser ignorado no #{leiaute}"
+      end
     end
+  end
+
+  test "endereço com chaves em string também vai" do
+    xml = dps_with(ENDERECO.transform_keys(&:to_s)).to_xml(leiaute: :rtc)
+    assert_equal "30130010", Nokogiri::XML(xml).at_xpath("//n:toma/n:end/n:endNac/n:CEP", NS).text
+  end
+
+  test "aspas e travessões do celular viram os simples e o XML valida" do
+    xml = dps_with(ENDERECO.merge(logradouro: "Rua D’Ávila – Q. 3", complemento: "“Fundos”")).to_xml(leiaute: :rtc)
+    NfseNacional::Schema.validate_dps!(xml, leiaute: :rtc)
+
+    address = Nokogiri::XML(xml).at_xpath("//n:toma/n:end", NS)
+    assert_equal "Rua D'Ávila - Q. 3", address.at_xpath("n:xLgr", NS).text
+    assert_equal '"Fundos"', address.at_xpath("n:xCpl", NS).text
   end
 
   test "endereço completo com valor fora do formato do XSD é recusado com mensagem clara" do
@@ -78,7 +94,8 @@ class NfseNacionalDpsNationalTomadorAddressTest < NfseNacional::TestCase
       {logradouro: "a" * 256} => /logradouro do tomador.*255/,
       {numero: "1" * 61} => /número do tomador.*60/,
       {complemento: "c" * 157} => /complemento do tomador.*156/,
-      {bairro: "b" * 61} => /bairro do tomador.*60/
+      {bairro: "b" * 61} => /bairro do tomador.*60/,
+      {logradouro: "Rua ☆ Estrela"} => /logradouro do tomador tem caractere não aceito pela Sefin/
     }.each do |change, message|
       error = assert_raises(ArgumentError, change.inspect) { dps_with(ENDERECO.merge(change)) }
       assert_match message, error.message

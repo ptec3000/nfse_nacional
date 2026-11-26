@@ -159,7 +159,7 @@ tomador: {
 }
 ```
 
-Município (código IBGE, 7 dígitos), CEP (8 dígitos, com ou sem pontuação), logradouro, número (use `"S/N"` quando não houver) e bairro são obrigatórios; o complemento é opcional. Com algum deles em branco, a DPS sai sem endereço, como antes. Completo mas fora do XSD (CEP ou município no formato errado, logradouro acima de 255 caracteres, número ou bairro acima de 60, complemento acima de 156), `Dps.new` levanta `ArgumentError`. O tomador estrangeiro continua com `endereco: {pais:, codigo_postal:, cidade:, estado:, ...}`.
+Município (código IBGE, 7 dígitos), CEP (8 dígitos, com ou sem pontuação), logradouro, número (use `"S/N"` quando não houver) e bairro são obrigatórios; o complemento é opcional. Com algum deles em branco, a DPS sai sem endereço, como antes. Completo mas fora do XSD (CEP ou município no formato errado, logradouro acima de 255 caracteres, número ou bairro acima de 60, complemento acima de 156, ou caractere que a Sefin não aceita, como emoji), `Dps.new` levanta `ArgumentError`. Aspas e travessões tipográficos (`’ “ ” –`) são trocados pelos simples. O tomador estrangeiro continua com `endereco: {pais:, codigo_postal:, cidade:, estado:, ...}`.
 
 ## CPF e CNPJ (inclusive alfanumérico)
 
