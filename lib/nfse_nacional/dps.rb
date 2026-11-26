@@ -41,6 +41,7 @@ module NfseNacional
         if Documento.alfanumerico?(document) && !Documento.valido?(document)
           raise ArgumentError, "CNPJ alfanumérico do tomador com dígito verificador inválido"
         end
+        @national_address = national_address(tomador[:endereco])
       end
     end
 
@@ -128,6 +129,18 @@ module NfseNacional
                   xml.CNPJ document
                 end
                 xml.xNome @tomador[:nome].to_s.strip
+                if (address = @national_address)
+                  xml.end_ do
+                    xml.endNac do
+                      xml.cMun address[:municipio_ibge]
+                      xml.CEP address[:cep]
+                    end
+                    xml.xLgr address[:logradouro]
+                    xml.nro address[:numero]
+                    xml.xCpl address[:complemento] if address[:complemento]
+                    xml.xBairro address[:bairro]
+                  end
+                end
                 xml.email @tomador[:email].to_s.strip unless blank_string?(@tomador[:email])
               end
             end
@@ -232,6 +245,32 @@ module NfseNacional
 
     def blank_string?(value)
       value.to_s.strip.empty?
+    end
+
+    NATIONAL_ADDRESS_REQUIRED = %i[municipio_ibge cep logradouro numero bairro].freeze
+    # Tamanho máximo de cada campo no XSD (TSLogradouro, TSNumeroEndereco, TSComplementoEndereco, TSBairro), com o nome
+    # que aparece na mensagem de erro.
+    NATIONAL_ADDRESS_LIMITS = {logradouro: ["logradouro", 255], numero: ["número", 60],
+                               complemento: ["complemento", 156], bairro: ["bairro", 60]}.freeze
+
+    # O endereço do tomador brasileiro vai só completo: o XSD exige cMun, CEP, xLgr, nro e xBairro juntos, e um cadastro
+    # pela metade sai como antes, sem <end>. Completo e fora do formato do XSD, recusa antes de chegar à Sefin.
+    def national_address(address)
+      return unless address.is_a?(Hash)
+
+      values = [*NATIONAL_ADDRESS_REQUIRED, :complemento].to_h { |key| [key, address[key].to_s.gsub(/\s+/, " ").strip] }
+      return if NATIONAL_ADDRESS_REQUIRED.any? { |key| values[key].empty? }
+
+      values[:cep] = values[:cep].gsub(/\D/, "")
+      raise ArgumentError, "CEP do tomador inválido: informe 8 dígitos" unless values[:cep].match?(/\A\d{8}\z/)
+      unless values[:municipio_ibge].match?(/\A\d{7}\z/)
+        raise ArgumentError, "Código IBGE do município do tomador inválido: informe 7 dígitos"
+      end
+      NATIONAL_ADDRESS_LIMITS.each do |key, (label, limit)|
+        raise ArgumentError, "O #{label} do tomador passa de #{limit} caracteres" if values[key].length > limit
+      end
+      values[:complemento] = nil if values[:complemento].empty?
+      values
     end
 
     def foreign_tomador?

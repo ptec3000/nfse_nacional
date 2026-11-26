@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+- Endereço do tomador brasileiro: com CPF/CNPJ e `endereco: {municipio_ibge:, cep:, logradouro:, numero:, complemento:, bairro:}` completo, a DPS leva `toma/end` com `endNac` (`cMun`, `CEP`), `xLgr`, `nro`, `xCpl` (opcional) e `xBairro`, nos dois leiautes. Antes, só o tomador estrangeiro levava endereço.
+- Sem endereço, ou com algum campo obrigatório em branco, a DPS sai igual à da 0.4.0 (sem `<end>`).
+- Endereço completo fora do XSD (CEP sem 8 dígitos, município sem 7, campo acima do tamanho máximo) levanta `ArgumentError` ao criar a DPS. O CEP aceita pontuação; espaços repetidos e quebras de linha viram um espaço.
+
 ## 0.4.0
 
 - **Mudança de contrato:** no leiaute `:rtc`, `ibs_cbs` nil, `{}` ou com todos os valores em branco omite o grupo `IBSCBS` (o XSD 1.01 tem `minOccurs="0"`) em vez de levantar `IbsCbsNaoConfigurado`. O Ato Conjunto RFB/CGIBS nº 7/2026 só obriga o Simples Nacional a informar IBS/CBS a partir de 2027, e a homologação da Sefin aceitou em 19/11/2026 uma DPS 1.01 de ME/EPP sem o grupo. Quem precisa do grupo confere `ibs_cbs_configured?` antes de emitir: a gem não sabe quando ele é obrigatório.
