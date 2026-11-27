@@ -147,6 +147,20 @@ O município deve ter sete dígitos. O código nacional aceita `171101` ou `17.1
 
 Informe o nome do seu app, com até 20 caracteres, em `Dps.new` e `Client.new`. O padrão é `"nfse_nacional"`; valores maiores geram `ArgumentError`. A DPS usa esse valor na emissão e o cliente o usa no pedido de cancelamento.
 
+## Endereço do tomador no Brasil
+
+O tomador com CPF ou CNPJ pode levar o endereço, que sai em `toma/end/endNac`:
+
+```ruby
+tomador: {
+  documento: "12345678909", nome: "Cliente Exemplo", email: "cliente@example.com",
+  endereco: {municipio_ibge: "3106200", cep: "30130-010", logradouro: "Avenida Afonso Pena",
+             numero: "1500", complemento: "Sala 2", bairro: "Centro"}
+}
+```
+
+Município (código IBGE, 7 dígitos), CEP (8 dígitos, com ou sem pontuação), logradouro, número (use `"S/N"` quando não houver) e bairro são obrigatórios; o complemento é opcional. Com algum deles em branco, a DPS sai sem endereço, como antes. Completo mas fora do XSD (CEP ou município no formato errado, logradouro acima de 255 caracteres, número ou bairro acima de 60, complemento acima de 156, ou caractere que a Sefin não aceita, como emoji), `Dps.new` levanta `ArgumentError`. Aspas e travessões tipográficos (`’ “ ” –`) são trocados pelos simples. O tomador estrangeiro continua com `endereco: {pais:, codigo_postal:, cidade:, estado:, ...}`.
+
 ## CPF e CNPJ (inclusive alfanumérico)
 
 A DPS aceita o documento com ou sem pontuação, em maiúsculas ou minúsculas, e envia só `[0-9A-Z]`. O CNPJ alfanumérico (IN RFB 2.229/2024: 12 posições `[0-9A-Z]` e 2 dígitos verificadores numéricos) vale para o prestador e para o tomador, mas só no leiaute `:rtc`: o XSD 1.00 aceita apenas números, e `to_xml(leiaute: :atual)` levanta `ArgumentError` ("CNPJ alfanumérico só é aceito no leiaute :rtc"). Documento de tomador que não seja CPF nem CNPJ é recusado, e o CNPJ alfanumérico do tomador precisa ter dígito verificador válido. O cancelamento ainda não aceita CNPJ alfanumérico do autor: o XSD de eventos 1.00 só admite números.
